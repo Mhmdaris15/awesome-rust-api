@@ -1,25 +1,48 @@
-use actix_web::{web, App, HttpServer, Responder};
-use mongodb::{Client, options::ClientOptions};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, Result};
+use serde::{Serialize};
 
-async fn index() -> impl Responder {
-    // Connect to MongoDB
-    let client_options = ClientOptions::parse("mongodb://localhost:27017").await.unwrap();
-    let client = Client::with_options(client_options).unwrap();
-    let db = client.database("berufsvernetzen");
+mod api;
+mod models;
+mod repository;
 
-    // Perform MongoDB operations here
-    // ...
+#[derive(Serialize)]
+pub struct Response {
+    pub status: String,
+    pub message: String,
+}
 
-    "Hello, world!"
+#[get("/health")]
+async fn healthcheck() -> impl Responder {
+    let response = Response {
+        status: "success".to_string(),
+        message: "Everything is working fine".to_string(),
+    };
+    HttpResponse::Ok().json(response)
+}
+
+
+async fn not_found() -> Result<HttpResponse> {
+    let response = Response {
+        status: "error".to_string(),
+        message: "Resource not found".to_string(),
+    };
+    Ok(HttpResponse::NotFound().json(response))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new().service(web::resource("/").to(index))
-    })
-    .bind("127.0.0.1:8080")?
-    .run()
-    .await
-}
+    let todo_db = repository::database::Database::new();
+    let app_data = web::Data::new(todo_db);
 
+    HttpServer::new(move ||
+        App::new()
+            .app_data(app_data.clone())
+            .configure(api::api::config)
+            .service(healthcheck)
+            .default_service(web::route().to(not_found))
+            .wrap(actix_web::middleware::Logger::default())
+    )
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+}

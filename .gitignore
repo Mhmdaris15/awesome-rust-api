@@ -1,0 +1,23 @@
+# Ignore compiled files
+target/
+
+# Ignore Cargo.lock file
+Cargo.lock
+
+# Ignore build artifacts
+*.rs.bk
+
+# Ignore .env files
+.env
+
+# Ignore Mac system files
+.DS_Store
+
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore IntelliJ IDEA settings
+.idea/
+
+# Ignore generated documentation
+/target/doc/
